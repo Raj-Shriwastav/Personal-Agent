@@ -1,0 +1,57 @@
+# Phase 1 stack: three containers on one private network.
+#
+#   frontend (5173) --/api--> backend (8000) --SQL--> db (5432)
+#
+# Containers reach each other by service name ("backend", "db"), not localhost.
+# Values in ${...} come from the .env file next to this file.
+
+services:
+  db:
+    # Plain PostgreSQL 16 with the pgvector extension preinstalled.
+    # We don't use vectors yet (Phase 5), but choosing this image now means
+    # we never have to migrate databases later.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      # Inside the compose network the DB is reachable at hostname "db",
+      # overriding the localhost default used when running outside Docker.
+      POSTGRES_HOST: db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app # live-reload source without rebuilding the image
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # keep container's node_modules, don't shadow with host
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
