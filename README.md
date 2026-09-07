@@ -4,7 +4,11 @@ A personal assistant that understands your goals, tasks, projects, notes and
 GitHub activity, and helps you decide what to work on and execute it, with a
 human approving every important action.
 
-Built incrementally, one phase at a time. See [docs/architecture.md](docs/architecture.md).
+Built incrementally, one phase at a time.
+
+- [docs/architecture.md](docs/architecture.md) — how the pieces fit
+- [docs/goals.md](docs/goals.md) — what the agent must do, and the phase order
+- [docs/setup-external-services.md](docs/setup-external-services.md) — Telegram bot, free AI models, GitHub token, free 24/7 hosting
 
 ## Current phase: 1 — Foundation
 
